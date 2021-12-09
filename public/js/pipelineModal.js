@@ -584,7 +584,7 @@ function cleanProcessModal() {
     }
     $('#createRevisionBut').css('display', "none");
     $('#saveprocess').css('display', "inline");
-
+    $('#testscript').css('display', "inline");
 }
 
 function cleanInfoModal() {
@@ -601,6 +601,7 @@ function cleanInfoModal() {
     editorProHeader.setReadOnly(false);
     editorProFooter.setReadOnly(false);
     $('#saveprocess').css('display', "inline");
+    $('#testscript').css('display', "inline");
     $('#selectProcess').css('display', "none");
     $('#createRevisionBut').css('display', "none");
 }
@@ -1550,6 +1551,7 @@ function disableProModal(selProcessId) {
     $('#mProcessGroupEdit').remove();
     $('#mProcessGroupDel').remove();
     $('#saveprocess').css('display', "none");
+    $('#testscript').css('display', "none");s
     $('#proPermGroPubDiv').css('display', "none");
     $('#mProActionsDiv').css('display', "inline");
     $('#createRevision').css('display', "none");
@@ -1610,6 +1612,7 @@ function disableProModalPublic(selProcessId) {
     $('#mProcessGroupEdit').remove();
     $('#mProcessGroupDel').remove();
     $('#saveprocess').css('display', "none");
+    $('#testscript').css('display', "none");
     $('#deleteRevision').css('display', "none");
     $('#createRevision').css('display', "inline");
     $('#createRevisionBut').css('display', "inline");
@@ -2668,6 +2671,28 @@ $(document).ready(function () {
         $('#mParamList').css('display', "inline");
     });
 
+    // Test script
+    $('#addProcessModal').on('click', '.testscript', function (event) {
+        var scripteditor = getScriptEditor('editor');
+        var language = $('#script_mode').val();
+	    // eventually, it is not bash; it is dash
+	    if (language === "sh") language = "bash";
+        const scriptData = {
+            script: scripteditor,
+        };
+        $.ajax({
+            type: "POST",
+            url: "http://localhost:3000/script/test/" + language,
+            data: scriptData,
+            async: true,
+            success: function (response) {
+                alert("Success: " + JSON.stringify(response));
+            },
+            error: function (error) {
+                alert("Error: " + JSON.stringify(error));
+            }
+        });
+    });
 
     // Add process modal to database
     $('#addProcessModal').on('click', '.saveprocess', function (event) {

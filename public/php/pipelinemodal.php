@@ -369,6 +369,10 @@
                                         <option value="r">R</option>
                                     </select>
                                 </div>
+                                <div class="col-sm-3" style="padding-left:0;">
+                                    <!-- test script button added -->
+                                    <button type="button" class="btn btn-primary testscript" id="testscript">Test Script</button>
+                                </div>
                             </div>
                         </div>
                     </div>
