@@ -584,7 +584,7 @@ function cleanProcessModal() {
     }
     $('#createRevisionBut').css('display', "none");
     $('#saveprocess').css('display', "inline");
-
+    $('#testscript').css('display', "inline");
 }
 
 function cleanInfoModal() {
@@ -601,6 +601,7 @@ function cleanInfoModal() {
     editorProHeader.setReadOnly(false);
     editorProFooter.setReadOnly(false);
     $('#saveprocess').css('display', "inline");
+    $('#testscript').css('display', "inline");
     $('#selectProcess').css('display', "none");
     $('#createRevisionBut').css('display', "none");
 }
@@ -1550,6 +1551,7 @@ function disableProModal(selProcessId) {
     $('#mProcessGroupEdit').remove();
     $('#mProcessGroupDel').remove();
     $('#saveprocess').css('display', "none");
+    $('#testscript').css('display', "none");
     $('#proPermGroPubDiv').css('display', "none");
     $('#mProActionsDiv').css('display', "inline");
     $('#createRevision').css('display', "none");
@@ -1610,6 +1612,7 @@ function disableProModalPublic(selProcessId) {
     $('#mProcessGroupEdit').remove();
     $('#mProcessGroupDel').remove();
     $('#saveprocess').css('display', "none");
+    $('#testscript').css('display', "none");
     $('#deleteRevision').css('display', "none");
     $('#createRevision').css('display', "inline");
     $('#createRevisionBut').css('display', "inline");
@@ -2668,6 +2671,249 @@ $(document).ready(function () {
         $('#mParamList').css('display', "inline");
     });
 
+    // duplicate control in array
+    function hasDuplicates(arr) {
+        return arr.some(x => arr.indexOf(x) !== arr.lastIndexOf(x))
+    }
+
+    // validate data of test script
+    function validate_data(data) {
+        let result = {
+            isValid: true,
+            message: ""
+        }
+        console.log(data)
+        // name is required
+        data.inputs.every((input) => {
+            if (!input.name) {
+                result.isValid = false
+                result.message += "inputs: name cannot be empty\n"
+                return false
+            }
+        })
+        data.outputs.every((output) => {
+            if (!output.name) {
+                result.isValid = false
+                result.message += "outputs: name cannot be empty\n"
+                return false
+            }
+        })
+        // names must be unique
+        if (hasDuplicates(data.inputs)) {
+            result.isValid = false
+            result.message += "inputs: names must be unique\n"
+        }
+        if (hasDuplicates(data.outputs)) {
+            result.isValid = false
+            result.message += "outputs: names must be unique\n"
+        }
+        // operator and operator content must be used together
+        data.inputs.every((input) => {
+            if ((input.operator && !input.operator_content) || (!input.operator && input.operator_content)) {
+                result.isValid = false
+                result.message += "inputs: operator and content must be used together\n"
+                return false
+            }
+        })
+        data.outputs.every((output) => {
+            if ((output.operator && !output.operator_content) || (!output.operator && output.operator_content)) {
+                result.isValid = false
+                result.message += "outputs: operator and content must be used together\n"
+                return false
+            }
+        })
+        // test value is required
+        data.inputs.every((input) => {
+            if (!input.test_value) {
+                result.isValid = false
+                result.message += "inputs: test value is required\n"
+                return false
+            }
+        })
+        data.outputs.every((output) => {
+            if (!output.test_value) {
+                result.isValid = false
+                result.message += "outputs: test value is required\n"
+                return false
+            }
+        })
+        // any kind of code is required
+        if (!(data.code.nextflow_header || data.code.script || data.code.nextflow_footer)) {
+            result.isValid = false
+            result.message += "any kind of code is required\n"
+        }
+
+        return result
+    }
+
+    // convert json object to form data
+    function convertToFormData(data) {
+        let res = []
+        res.push({name: "p", value: data.p})
+        for (let i=0; i<data.inputs.length; i++) {
+            res.push({name: "input"+i+"_name", value: data.inputs[i].name})
+            res.push({name: "input"+i+"_qualifier", value: data.inputs[i].qualifier})
+            res.push({name: "input"+i+"_operator", value: data.inputs[i].operator})
+            res.push({name: "input"+i+"_operator_content", value: data.inputs[i].operator_content})
+            res.push({name: "input"+i+"_test_value", value: data.inputs[i].test_value})
+        }
+        for (let i=0; i<data.outputs.length; i++) {
+            res.push({name: "output"+i+"_name", value: data.outputs[i].name})
+            res.push({name: "output"+i+"_qualifier", value: data.outputs[i].qualifier})
+            res.push({name: "output"+i+"_operator", value: data.outputs[i].operator})
+            res.push({name: "output"+i+"_operator_content", value: data.outputs[i].operator_content})
+            res.push({name: "output"+i+"_test_value", value: data.outputs[i].test_value})
+        }
+        res.push({name: "code_nextflow_header", value: data.code.nextflow_header})
+        res.push({name: "code_script", value: data.code.script})
+        res.push({name: "code_nextflow_footer", value: data.code.nextflow_footer})
+
+        return res
+    }
+
+
+    // test script
+    $('#addProcessModal').on('click', '.testscript', function (event) {
+        var clickedButID = $(this).attr("id")  //saveprocess, createRevision, createRevisionBut
+        event.preventDefault()
+        var savetype = $('#mIdPro').val()
+        $('#permsPro').removeAttr('disabled')
+        var perms = $('#permsPro').val()
+        $('#permsPro').attr('disabled', "disabled")
+        var group = $('#groupSelPro').val()
+        if (!group) {
+            group = ""
+        }
+        if (!savetype.length) {
+            // data to send
+            let data = {
+                p: "testScript",
+                inputs: [],
+                outputs: [],
+                code: {
+                    nextflow_header: "",
+                    script: "",
+                    nextflow_footer: ""
+                }
+            }
+            /*
+             * inputs
+             */
+            // get selected input count
+            const input_count = $("#mInputs .item").size()
+            // get selected input names
+            let input_names = new Array(input_count)
+            for (let i=1; i<=input_count; i++) {
+                input_names[i-1] = $("#mInName-"+i).val()
+            }
+            // get selected input qualifiers
+            const input_qualifiers = $("#mInputs .item").find('small').map(function(){
+                return $.trim($(this).text()).match(/val|file|set|each/g)
+            }).get()
+            // get selected input operator
+            let input_operators = new Array(input_count)
+            $("#mInOpt [style*='visible']").each(function(){
+                if (!this.options[this.selectedIndex].disabled) {
+                    let id = this.name.match(/\d+/)[0]
+                    input_operators[id-1] = this.options[this.selectedIndex].text
+                }
+            })
+            // get selected input operator content
+            let input_operators_content = new Array(input_count)
+            $("#mInClosure [style*='visible']").each(function(){
+                let id = this.name.match(/\d+/)[0]
+                input_operators_content[id-1] = this.value
+            })
+            // get selected input test value
+            let input_test_values = new Array(input_count)
+            for (let i=1; i<=input_count; i++) {
+                input_test_values[i-1] = $("#mInTestValue-"+i).val()
+            }
+            /*
+             * outputs
+             */
+            // get selected output count
+            const output_count = $("#mOutputs .item").size()
+            // get selected output names
+            let output_names = new Array(output_count)
+            for (let i=1; i<=output_count; i++) {
+                output_names[i-1] = $("#mOutName-"+i).val()
+            }
+            // get selected output qualifiers
+            const output_qualifiers = $("#mOutputs .item").find('small').map(function(){
+                return $.trim($(this).text()).match(/val|file|set|each/g)
+            }).get()
+            // get selected output operator
+            let output_operators = new Array(output_count)
+            $("#mOutOpt [style*='visible']").each(function(){
+                if (!this.options[this.selectedIndex].disabled) {
+                    let id = this.name.match(/\d+/)[0]
+                    output_operators[id-1] = this.options[this.selectedIndex].text
+                }
+            })
+            // get selected output operator content
+            let output_operators_content = new Array(output_count)
+            $("#mOutClosure [style*='visible']").each(function(){
+                let id = this.name.match(/\d+/)[0]
+                output_operators_content[id-1] = this.value
+            });
+            // get selected output test value
+            let output_test_values = new Array(output_count)
+            for (let i=1; i<=output_count; i++) {
+                output_test_values[i-1] = $("#mOutTestValue-"+i).val()
+            }
+            /*
+             * code
+             */
+            const nextflow_header = getScriptEditor('editorProHeader')
+            const script = getScriptEditor('editor')
+            const nextflow_footer = getScriptEditor('editorProFooter')
+            data.inputs = new Array(input_count)
+            for (let i=0; i<input_count; i++) {
+                data.inputs[i] = {}
+                data.inputs[i].name = input_names[i]
+                data.inputs[i].qualifier = input_qualifiers[i]
+                data.inputs[i].operator = input_operators[i]
+                data.inputs[i].operator_content = input_operators_content[i]
+                data.inputs[i].test_value = input_test_values[i]
+            }
+            data.outputs = new Array(output_count)
+            for (let i=0; i<output_count; i++) {
+                data.outputs[i] = {}
+                data.outputs[i].name = output_names[i]
+                data.outputs[i].qualifier = output_qualifiers[i]
+                data.outputs[i].operator = output_operators[i]
+                data.outputs[i].operator_content = output_operators_content[i]
+                data.outputs[i].test_value = output_test_values[i]
+            }
+            data.code.nextflow_header = nextflow_header
+            data.code.script = script
+            data.code.nextflow_footer = nextflow_footer
+            const result = validate_data(data)
+            if (result.isValid) {
+                // convert to array to make it compatible
+                const dataToProcess = convertToFormData(data)
+                $.ajax({
+                    type: "POST",
+                    url: "ajax/ajaxquery.php",
+                    /*data: JSON.stringify(data),
+                    dataType: "text",
+                    contentType: "application/json",*/
+                    data: dataToProcess,
+                    async: true,
+                    success: function (response) {
+                        alert(decodeURIComponent(response))
+                        $('#addProcessModal').modal('hide')
+                    },
+                    error: function (error) {
+                        console.log("Error: " + error)
+                    }
+                });
+            } else {
+                alert(result.message)
+            }
+        }
+    })
 
     // Add process modal to database
     $('#addProcessModal').on('click', '.saveprocess', function (event) {
@@ -2968,6 +3214,7 @@ $(document).ready(function () {
                 var col9init = "m" + type + "RegBut";
                 var col10init = "m" + type + "Reg";
                 var col11init = "m" + type + "Regdel";
+                var col12init = "m" + type + "TestValue";
 
                 var num = id.replace(Patt, '$2');
                 var prevParId = $("#" + id).attr("prev");
@@ -2993,6 +3240,7 @@ $(document).ready(function () {
                     $("#" + col9init).append('<button  type="button" class="btn btn-default form-control addRegEx" style ="margin-bottom: 6px;" id="' + col9init + '-' + String(idRows - 1) + '" name="' + col9init + '-' + String(idRows - 1) + '"><a data-toggle="tooltip" data-placement="bottom" data-original-title="Add/Remove Output RegEx"><span><i class="fa fa-code"></i></span></a></button>');
                     $("#" + col10init).append('<input type="text" ppID="" placeholder="Enter RegEx" class="form-control " style ="visibility:hidden; margin-bottom: 6px;" id="' + col10init + '-' + String(idRows - 1) + '" name="' + col10init + '-' + String(idRows - 1) + '">');
                     $("#" + col11init).append('<button type="submit" class="btn btn-default form-control delRegEx" style ="visibility:hidden; margin-bottom: 6px;" id="' + col11init + '-' + String(idRows - 1) + '" name="' + col11init + '-' + String(idRows - 1) + '"><a data-toggle="tooltip" data-placement="bottom" data-original-title="Remove Output RegEx"><span><i class="glyphicon glyphicon-remove"></i></span></a></button>');
+                    $('#' + col12init).append('<input type="text" ppID="" placeholder="Enter test value" class="form-control " style ="margin-bottom: 6px;" id="' + col12init + '-' + String(idRows - 1) + '" name="' + col12init + '-' + String(idRows - 1) + '">');
                     //refresh tooltips
                     $('[data-toggle="tooltip"]').tooltip();
                     //load closure options
@@ -3137,6 +3385,7 @@ $(document).ready(function () {
         var col9init = "m" + type + "RegBut";
         var col10init = "m" + type + "Reg";
         var col11init = "m" + type + "Regdel";
+        var col12init = "m" + type + "TestValue";
         $("#" + col1init + "-" + String(num)).next().remove();
         $("#" + col1init + "-" + String(num)).remove();
         $("#" + col2init + "-" + String(num)).remove();
@@ -3149,6 +3398,7 @@ $(document).ready(function () {
         $("#" + col9init + "-" + String(num)).remove();
         $("#" + col10init + "-" + String(num)).remove();
         $("#" + col11init + "-" + String(num)).remove();
+        $("#" + col12init + "-" + String(num)).remove();
     });
 
     //parameter modal file type change:(save file type as identifier for val)

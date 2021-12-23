@@ -2,7 +2,6 @@
     .nodisp {
         display: block
     }
-
 </style>
 
 <!-- selectPipelineModal -->
@@ -48,7 +47,7 @@
 
 <!-- Add Process Modal -->
 <div id="addProcessModal" style="overflow-y:scroll;" class="modal fade " tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" style="width:1300px;" role="document">
+    <div class="modal-dialog modal-lg" style="width:1500px;" role="document">
         <div class="modal-content">
             <span id="addHeader"></span>
             <div id="revModalHeader" class="modal-header">
@@ -151,6 +150,9 @@
                         <div class="col-sm-2 " style="width:100px; padding-left:5px; padding-right:0; border-bottom:1px solid lightgrey;">
                             <p style="padding-left:15px;">Optional <span><a data-toggle="tooltip" data-placement="bottom" title="Optional input parameter. Process will be executed in case parameter is empty."><i class='glyphicon glyphicon-info-sign' style="font-size:13px;"></i></a></span></p>
                         </div>
+                        <div id="mInTestValueT" class="col-sm-2" style="width:160px; padding-left:5px; padding-right:0; border-bottom:1px solid lightgrey;">
+                            <p style="padding-left:20px;">Test Value <span><a data-toggle="tooltip" data-placement="bottom" title="val: 5, file: /export/file, set: [1, 'a'], [2, 'b'], each: [5, 10]"><i class='glyphicon glyphicon-info-sign' style="font-size:13px;"></i></a></span></p>
+                        </div>
                     </div>
                     <div id="inputGroup" class="form-group">
                         <label for="mInputs-1" style="width:150px;" class="col-sm-2 control-label">Inputs</label>
@@ -231,6 +233,9 @@
                         <div id="mInOptional" class="col-sm-1" style="width:40px; padding-left:0;padding-right:0;">
                             <label style="display:none;" class="btn btn-default form-control"><input id="mInOptional-0" name="mInOptional-0" type="checkbox" autocomplete="off"> </label>
                         </div>
+                        <div id="mInTestValue" class="col-sm-2 " style="width:180px; padding-left:60px; padding-right:0;">
+                            <input type="text" style="display:none; " placeholder="Enter value" class="form-control" ppID="" id="mInName-0" name="mInTestValue-0">
+                        </div>
                     </div>
                     <div id="outputTitle" class="form-group" style="  margin-bottom:15px; padding-top:15px;">
                         <p style="width:150px;" class="col-sm-2 control-label"></p>
@@ -263,6 +268,9 @@
 
                         <div id="mOutRegT" class="col-sm-2 " style="width:180px; padding-left:0px; padding-right:0; border-bottom:1px solid lightgrey;">
                             <p style="padding-left:15px;">Regular Expression <span><a data-toggle="tooltip" data-placement="bottom" title="Optional regular expresion to filter output files, which are going to be transferred to output directory. (Default: output name pattern is used)"><i class='glyphicon glyphicon-info-sign' style="font-size:13px;"></i></a></span></p>
+                        </div>
+                        <div id="mOutTestValueT" class="col-sm-2" style="width:160px; padding-left:5px; padding-right:0; border-bottom:1px solid lightgrey;">
+                            <p style="padding-left:20px;">Test Value <span><a data-toggle="tooltip" data-placement="bottom" title="val: 5, file: /export/file, tuple: [1, 'a'], [2, 'b'], each: [5, 10]"><i class='glyphicon glyphicon-info-sign' style="font-size:13px;"></i></a></span></p>
                         </div>
                     </div>
                     <div id="outputGroup" class="form-group">
@@ -353,6 +361,9 @@
                         <div id="mOutRegdel" class="col-sm-1" style="width:40px; padding-left:0; padding-right:0;">
                             <button type="submit" style="display:none;" class="btn btn-default form-control" id="mOutRegdel-0" name="mOutRegdel-0"><i class="glyphicon glyphicon-remove"></i></button>
                         </div>
+                        <div id="mOutTestValue" class="col-sm-2 " style="width:180px; padding-left:5px; padding-right:0;">
+                            <input type="text" style="display:none; " placeholder="Enter value" class="form-control" ppID="" id="mOutTestValue-0" name="mOutTestValue-0">
+                        </div>
                     </div>
                     <div class="form-group" style=" padding-top:15px; border-top:0.094em solid lightgrey;">
                         <label for="mScript" style="width:150px;" class="col-sm-2 control-label">Script</label>
@@ -368,6 +379,10 @@
                                         <option value="python">python</option>
                                         <option value="r">R</option>
                                     </select>
+                                </div>
+                                <div class="col-sm-3" style="padding-left:0;">
+                                    <!-- test script button added -->
+                                    <button type="button" class="btn btn-primary testscript" id="testscript">Test Script</button>
                                 </div>
                             </div>
                         </div>

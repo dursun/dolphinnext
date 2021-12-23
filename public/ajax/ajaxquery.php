@@ -1761,6 +1761,131 @@ else if ($p=="saveProcessGroup"){
         }
     }
 }
+else if ($p == "testScript") {
+    /*
+    *   {
+    *       "p": "",
+    *       "inputs": [
+    *           {
+    *               "name": "",
+    *               "qualifier": "",
+    *               "operator": "",
+    *               "operator_content": "",
+    *               "test_value": ""
+    *           }
+    *       ],
+    *       "outputs": [
+    *           {
+    *               "name": "",
+    *               "qualifier": "",
+    *               "operator": "",
+    *               "operator_content": "",
+    *               "test_value": ""
+    *           }
+    *       ],
+    *       "code": {
+    *           "nextflow_header": "",
+    *           "script": "",
+    *           "nextflow_footer": ""
+    *       }
+    *   }
+    */
+    $input_count = 0;
+    $output_count = 0;
+    foreach ($_REQUEST as $param_name => $param_val) {
+        if (strpos($param_name, "input") !== false) $input_count++;
+        if (strpos($param_name, "output") !== false) $output_count++;
+    }
+    // because every object has 5 keys
+    $input_count /= 5;
+    $output_count /= 5;
+    $inputs = array();
+    $outputs = array();
+    for ($i=0; $i<$input_count; $i++) {
+        $input = (object)[];
+        $input->name = $_REQUEST['input'.$i.'_name'];
+        $input->qualifier = $_REQUEST['input'.$i.'_qualifier'];
+        $input->operator = $_REQUEST['input'.$i.'_operator'];
+        $input->operator_content = $_REQUEST['input'.$i.'_operator_content'];
+        $input->test_value = $_REQUEST['input'.$i.'_test_value'];
+        array_push($inputs, $input);
+    }
+    for ($i=0; $i<$output_count; $i++) {
+        $output = (object)[];
+        $output->name = $_REQUEST['output'.$i.'_name'];
+        $output->qualifier = $_REQUEST['output'.$i.'_qualifier'];
+        $output->operator = $_REQUEST['output'.$i.'_operator'];
+        $output->operator_content = $_REQUEST['output'.$i.'_operator_content'];
+        $output->test_value = $_REQUEST['output'.$i.'_test_value'];
+        array_push($outputs, $output);
+    }
+    $code_nextflow_header = $_REQUEST['code_nextflow_header'];
+    $code_script = $_REQUEST['code_script'];
+    $code_nextflow_footer = $_REQUEST['code_nextflow_footer'];
+    // creating nextflow file
+    $nextflow = "#!/usr/bin/env nextflow\n\n";
+    if ($code_nextflow_header) {
+        $nextflow .= urldecode($code_nextflow_header) . "\n\n";
+    }
+    // method: file-fromPath(''), value-(), set-of([1, 'alpha'], [2, 'beta']), each-[5,10]
+    $method = "";
+    for ($i=0; $i<$input_count; $i++) {
+        if ($inputs[$i]->qualifier === "file") $method = "fromPath";
+        else if ($inputs[$i]->qualifier === "set") $method = "of";
+        else $method = "value";
+        if ($inputs[$i]->operator && $inputs[$i]->operator_content) {
+            $nextflow .= "ch" . ($i+1) . " = Channel." . $method . "(" . $inputs[$i]->test_value . ")." . $inputs[$i]->operator . $inputs[$i]->operator_content . "\n";
+        } else {
+            $nextflow .= "ch" . ($i+1) . " = Channel." . $method . "(" . $inputs[$i]->test_value . ")\n";
+        }
+    }
+    for ($i=0; $i<$output_count; $i++) {
+        if ($outputs[$i]->qualifier === "file") $method = "fromPath";
+        else if ($outputs[$i]->qualifier === "set") $method = "of";
+        else $method = "value";
+        $nextflow .= "ch" . ($i+$input_count+1) . " = Channel." . $method . "(" . $outputs[$i]->test_value . ")\n";
+    }
+    $nextflow .= "\n";
+    $nextflow .= "process pTest {\n";
+    if ($input_count > 0) $nextflow .= "\tinput:\n";
+    for ($i=0; $i<$input_count; $i++) {
+        $nextflow .= "\t" . $inputs[$i]->qualifier . " " . $inputs[$i]->name . " from ch" . ($i+1) . "\n";
+    }
+    for ($i=0; $i<$output_count; $i++) {
+        $nextflow .= "\t" . $outputs[$i]->qualifier . " " . $outputs[$i]->name . " from ch" . ($i+$input_count+1) . "\n";
+    }
+    if ($output_count > 0) $nextflow .= "\n\toutput:\n";
+    for ($i=0; $i<$output_count; $i++) {
+        $nextflow .= "\t" . $outputs[$i]->qualifier . " " . $outputs[$i]->name . " into result" . ($i+1) . "\n";
+    }
+    $nextflow .= "\n\tscript:\n";
+    $nextflow .= "\t\"\"\"\n";
+    $nextflow .= urldecode($code_script);
+    $nextflow .= "\n\t\"\"\"\n}\n\n";
+    for ($i=0; $i<$output_count; $i++) {
+        $nextflow .= "result" . ($i+1) . ".println { \"##Received:\\n---\\n\$it.name\\n\$it.text\" }\n";
+    }
+    if ($code_nextflow_footer) {
+        $nextflow .= urldecode($code_nextflow_footer) . "\n";
+    }
+    $nextflow .= "workflow.onComplete {\n\tprintln \"##Pipeline execution summary##\"";
+    $nextflow .= "\n\tprintln \"----------------------------\"";
+    $nextflow .= "\n\tprintln \"##Completed at: \${workflow.complete}\"";
+    $nextflow .= "\n\tprintln \"##Duration: \${workflow.duration}\"";
+    $nextflow .= "\n\tprintln \"##Success: \${workflow.success ? 'OK' : 'FAILED' }\"";
+    $nextflow .= "\n\tprintln \"##Exit status: \${workflow.exitStatus}\"";
+    $nextflow .= "\n}\n";
+    // create directory and save file
+    $dirname = "/tmp/" . uniqid("nf_");
+    mkdir($dirname);
+    $filename = $dirname . "/" . uniqid("nf_") . ".nf";
+    file_put_contents($filename, $nextflow);
+    // execute nextflow
+    $output = shell_exec("cd $dirname && nextflow -q run $filename -process.echo");
+
+    // return response
+    $data = json_encode($output);
+}
 else if ($p=="saveProcess"){
     $name = $_REQUEST['name'];
     $process_gid = isset($_REQUEST['process_gid']) ? $_REQUEST['process_gid'] : "";
