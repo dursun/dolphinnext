@@ -892,7 +892,8 @@ function loadModalEnv() {
         async: false,
         success: function (s) {
             $("#test_environment").empty()
-            const firstOptionGroup = new Option("Choose Test Environment", '')
+            let firstOptionGroup = new Option("Choose Test Environment", '')
+            firstOptionGroup.disabled = true
             $("#test_environment").append(firstOptionGroup);
             for (let i = 0; i < s.length; i++) {
                 const param = s[i]
@@ -2769,6 +2770,11 @@ $(document).ready(function () {
             result.isValid = false
             result.message += "any kind of code is required\n"
         }
+        // test environment must be selected
+        if (!(data.test_environment.username && data.test_environment.hostname)) {
+            result.isValid = false
+            result.message += "test environment must be selected\n"
+        }
 
         return result
     }
@@ -2794,6 +2800,8 @@ $(document).ready(function () {
         res.push({name: "code_nextflow_header", value: data.code.nextflow_header})
         res.push({name: "code_script", value: data.code.script})
         res.push({name: "code_nextflow_footer", value: data.code.nextflow_footer})
+        res.push({name: "test_environment_username", value: data.test_environment.username})
+        res.push({name: "test_environment_hostname", value: data.test_environment.hostname})
 
         return res
     }
@@ -2821,6 +2829,10 @@ $(document).ready(function () {
                     nextflow_header: "",
                     script: "",
                     nextflow_footer: ""
+                },
+                test_environment: {
+                    username: "",
+                    hostname: ""
                 }
             }
             /*
@@ -2916,6 +2928,15 @@ $(document).ready(function () {
             data.code.nextflow_header = nextflow_header
             data.code.script = script
             data.code.nextflow_footer = nextflow_footer
+            // get test environment
+            const selected_env = $("#test_environment").find('option:selected').text()
+            let matched = ""
+            if (selected_env)
+                matched = selected_env.match(/\(([^)]+)\)/)
+            if (matched) {
+                data.test_environment.username = matched[1].split('@')[0]
+                data.test_environment.hostname = matched[1].split('@')[1]
+            }
             const result = validate_data(data)
             if (result.isValid) {
                 // convert to array to make it compatible
@@ -2933,7 +2954,7 @@ $(document).ready(function () {
                         $('#addProcessModal').modal('hide')
                     },
                     error: function (error) {
-                        console.log("Error: " + error)
+                        console.log("Error: " + JSON.stringify(error))
                     }
                 });
             } else {

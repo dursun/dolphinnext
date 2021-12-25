@@ -387,6 +387,7 @@
                                 <!-- choose test environment select added -->
                                 <div class="col-sm-3" style="padding-left:0;">
                                     <select id="test_environment" name="test_environment" class="form-control">
+                                        <option value="Operators" disabled>Choose Test Environment</option>
                                     </select>
                                 </div>
                             </div>
