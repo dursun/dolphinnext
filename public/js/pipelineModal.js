@@ -619,6 +619,7 @@ function refreshProcessModal(selProId) {
     $('#proPermGroPubDiv').css('display', "inline");
     loadModalRevision(selProId);
     loadSelectedProcess(selProId);
+    loadModalEnv();
 }
 
 function loadModalProGro() {
@@ -879,6 +880,31 @@ function loadSelectedProcess(selProcessId) {
     return [showProcess.perms, processOwn];
 };
 
+
+function loadModalEnv() {
+    $.ajax({
+        type: "GET",
+        url: "ajax/ajaxquery.php",
+        data: {
+            p: "getProfiles",
+            type: "run"
+        },
+        async: false,
+        success: function (s) {
+            $("#test_environment").empty()
+            const firstOptionGroup = new Option("Choose Test Environment", '')
+            $("#test_environment").append(firstOptionGroup);
+            for (let i = 0; i < s.length; i++) {
+                const param = s[i]
+                const optionGroup = new Option(`${param.name} (${param.username}@${param.hostname}) `, "cluster-"+(i+1))
+                $("#test_environment").append(optionGroup)
+            }
+        },
+        error: function (e) {
+            alert("Error: " + e)
+        }
+    })
+}
 
 //Check if process is ever used in pipelines 
 function checkPipeline(proid) {
@@ -2525,6 +2551,7 @@ $(document).ready(function () {
         editor.setValue(templatesh);
         loadModalProGro();
         loadModalParam();
+        loadModalEnv();
 
         var button = $(event.relatedTarget);
         var checkAddprocess = button.attr('id') === 'addprocess';

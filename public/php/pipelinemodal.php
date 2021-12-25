@@ -380,9 +380,14 @@
                                         <option value="r">R</option>
                                     </select>
                                 </div>
-                                <div class="col-sm-3" style="padding-left:0;">
-                                    <!-- test script button added -->
+                                <!-- test script button added -->
+                                <div class="col-sm-1" style="padding-left:0;">
                                     <button type="button" class="btn btn-primary testscript" id="testscript">Test Script</button>
+                                </div>
+                                <!-- choose test environment select added -->
+                                <div class="col-sm-3" style="padding-left:0;">
+                                    <select id="test_environment" name="test_environment" class="form-control">
+                                    </select>
                                 </div>
                             </div>
                         </div>
