@@ -897,7 +897,7 @@ function loadModalEnv() {
             $("#test_environment").append(firstOptionGroup);
             for (let i = 0; i < s.length; i++) {
                 const param = s[i]
-                const optionGroup = new Option(`${param.name} (${param.username}@${param.hostname}) `, "cluster-"+(i+1))
+                const optionGroup = new Option(`${param.name} (${param.username}@${param.hostname}) `, `cluster-${param.owner_id}_${param.ssh_id}`)
                 $("#test_environment").append(optionGroup)
             }
         },
@@ -2775,6 +2775,11 @@ $(document).ready(function () {
             result.isValid = false
             result.message += "test environment must be selected\n"
         }
+        // selected test environment must have ssh and owner id
+        if (!(data.test_environment.owner_id && data.test_environment.ssh_id)) {
+            result.isValid = false
+            result.message += "selected test environment must have owner and ssh id\n"
+        }
 
         return result
     }
@@ -2802,6 +2807,8 @@ $(document).ready(function () {
         res.push({name: "code_nextflow_footer", value: data.code.nextflow_footer})
         res.push({name: "test_environment_username", value: data.test_environment.username})
         res.push({name: "test_environment_hostname", value: data.test_environment.hostname})
+        res.push({name: "test_environment_owner_id", value: data.test_environment.owner_id})
+        res.push({name: "test_environment_ssh_id", value: data.test_environment.ssh_id})
 
         return res
     }
@@ -2832,7 +2839,9 @@ $(document).ready(function () {
                 },
                 test_environment: {
                     username: "",
-                    hostname: ""
+                    hostname: "",
+                    owner_id: "",
+                    ssh_id: ""
                 }
             }
             /*
@@ -2915,6 +2924,7 @@ $(document).ready(function () {
                 data.inputs[i].operator = input_operators[i]
                 data.inputs[i].operator_content = input_operators_content[i]
                 data.inputs[i].test_value = input_test_values[i]
+                console.log("input values :" + input_test_values[i])
             }
             data.outputs = new Array(output_count)
             for (let i=0; i<output_count; i++) {
@@ -2924,12 +2934,15 @@ $(document).ready(function () {
                 data.outputs[i].operator = output_operators[i]
                 data.outputs[i].operator_content = output_operators_content[i]
                 data.outputs[i].test_value = output_test_values[i]
+                console.log("output values :" + output_test_values[i])
             }
             data.code.nextflow_header = nextflow_header
             data.code.script = script
             data.code.nextflow_footer = nextflow_footer
             // get test environment
             const selected_env = $("#test_environment").find('option:selected').text()
+            const selected_ids = $("#test_environment").find('option:selected').val()
+            // e.g. Local (docker@localhost)
             let matched = ""
             if (selected_env)
                 matched = selected_env.match(/\(([^)]+)\)/)
@@ -2937,8 +2950,23 @@ $(document).ready(function () {
                 data.test_environment.username = matched[1].split('@')[0]
                 data.test_environment.hostname = matched[1].split('@')[1]
             }
+            // e.g. cluster-1_1
+            const splitted = selected_ids.split('-')
+            if (splitted) {
+                const ids = splitted[1].split('_')
+                if (ids) {
+                    data.test_environment.owner_id = ids[0]
+                    data.test_environment.ssh_id = ids[1]
+                }
+            }
             const result = validate_data(data)
+            // reset modal box
+            $("#modal-process-body").empty()
+            $("#modal-process-footer").empty()
+            $('<h3>Please wait ...</h3>').appendTo('#modal-process-footer')
+            document.getElementsByClassName("close-modal")[0].onclick = null
             if (result.isValid) {
+                $("#processModal").css("display", "block")
                 // convert to array to make it compatible
                 const dataToProcess = convertToFormData(data)
                 $.ajax({
@@ -2950,11 +2978,18 @@ $(document).ready(function () {
                     data: dataToProcess,
                     async: true,
                     success: function (response) {
-                        alert(decodeURIComponent(response))
-                        $('#addProcessModal').modal('hide')
+                        // replace new-line character (\n) with html break (<br/>)
+                        $('<p>'+decodeURIComponent(response).replace(/\n/g, "<br/>")+'</p>').appendTo('#modal-process-body')
+                        $("#modal-process-footer").empty()
+                        $('<h3>Process completed. You can close it with click on close button.</h3>').appendTo('#modal-process-footer')
+                        document.getElementsByClassName("close-modal")[0].onclick = function() {
+                            $("#processModal").css("display", "none")
+                        }
                     },
                     error: function (error) {
                         console.log("Error: " + JSON.stringify(error))
+                        alert("Error: " + JSON.stringify(error))
+                        $("#processModal").css("display", "none")
                     }
                 });
             } else {

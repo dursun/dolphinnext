@@ -1787,6 +1787,12 @@ else if ($p == "testScript") {
     *           "nextflow_header": "",
     *           "script": "",
     *           "nextflow_footer": ""
+    *       },
+    *       "test_environment": {
+    *           "username": "",
+    *           "hostname": "",
+    *           "ssh_id": "",
+    *           "owner_id": ""
     *       }
     *   }
     */
@@ -1824,6 +1830,8 @@ else if ($p == "testScript") {
     $code_nextflow_footer = $_REQUEST['code_nextflow_footer'];
     $test_environment_username = $_REQUEST['test_environment_username'];
     $test_environment_hostname = $_REQUEST['test_environment_hostname'];
+    $test_environment_owner_id = $_REQUEST['test_environment_owner_id'];
+    $test_environment_ssh_id = $_REQUEST['test_environment_ssh_id'];
     // creating nextflow file
     $nextflow = "#!/usr/bin/env nextflow\n\n";
     if ($code_nextflow_header) {
@@ -1878,7 +1886,8 @@ else if ($p == "testScript") {
     $nextflow .= "\n\tprintln \"##Exit status: \${workflow.exitStatus}\"";
     $nextflow .= "\n}\n";
     // create directory and save file
-    $dirname = "/tmp/" . uniqid("nf_");
+    $root_directory = "/tmp";
+    $dirname = "$root_directory/" . uniqid("nf_");
     mkdir($dirname);
     $filename = $dirname . "/" . uniqid("nf_") . ".nf";
     file_put_contents($filename, $nextflow);
@@ -1886,13 +1895,12 @@ else if ($p == "testScript") {
     $targz_filename = $dirname.".tar.gz";
     $db->tarGzDirectory($dirname, $targz_filename);
     // send that file to the target via ssh
-    $ssh_settings = "-oStrictHostKeyChecking=no -q -oChallengeResponseAuthentication=no -oBatchMode=yes -oPasswordAuthentication=no -oConnectTimeout=3";
-    $userpky = "/export/.dolphinnext/.ssh/1_1_ssh_pri.pky";
+    $ssh_settings = $db->getSshSettings();
+    $ssh_path = $db->getSshPath();
+    $userpky = "{$ssh_path}/{$test_environment_owner_id}_{$test_environment_ssh_id}_ssh_pri.pky";
     $rsync_cmd = "rsync -e 'ssh $ssh_settings -i $userpky' $targz_filename $test_environment_username@$test_environment_hostname:$dirname 2>&1";
-    syslog(LOG_WARNING, "rsync: $rsync_cmd");
     // extract and execute nextflow script
-    $exec_cmd = "ssh $test_environment_username@$test_environment_hostname $ssh_settings -i $userpky source /etc/profile && tar xf $targz_filename -C /tmp && rm $targz_filename && cd $dirname && nextflow -q run $filename -process.echo";
-    syslog(LOG_WARNING, "exec: $exec_cmd");
+    $exec_cmd = "ssh $test_environment_username@$test_environment_hostname $ssh_settings -i $userpky source /etc/profile && tar xf $targz_filename -C $root_directory && rm $targz_filename && cd $dirname && nextflow -q run $filename -process.echo";
     $output = shell_exec($exec_cmd);
 
     // return response

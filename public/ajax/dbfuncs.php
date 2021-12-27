@@ -37,6 +37,18 @@ class dbfuncs {
         }
     }
 
+    // getter of ssh_path
+    function getSshPath() 
+    {
+        return $this->ssh_path;
+    }
+
+    // getter of ssh_settings
+    function getSshSettings()
+    {
+        return $this->ssh_settings;
+    }
+
     // __destruct removed for unit testing
     //    function __destruct() {
     //        if (isset(self::$link)) {
