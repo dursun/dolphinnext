@@ -2710,7 +2710,6 @@ $(document).ready(function () {
             isValid: true,
             message: ""
         }
-        console.log(data)
         // name is required
         data.inputs.every((input) => {
             if (!input.name) {
@@ -2914,7 +2913,6 @@ $(document).ready(function () {
             data.inputs[i].operator = input_operators[i]
             data.inputs[i].operator_content = input_operators_content[i]
             data.inputs[i].test_value = input_test_values[i]
-            console.log("input values :" + input_test_values[i])
         }
         data.outputs = new Array(output_count)
         for (let i=0; i<output_count; i++) {
@@ -2924,7 +2922,6 @@ $(document).ready(function () {
             data.outputs[i].operator = output_operators[i]
             data.outputs[i].operator_content = output_operators_content[i]
             data.outputs[i].test_value = output_test_values[i]
-            console.log("output values :" + output_test_values[i])
         }
         data.code.nextflow_header = nextflow_header
         data.code.script = script
