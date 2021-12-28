@@ -1886,21 +1886,28 @@ else if ($p == "testScript") {
     $nextflow .= "\n\tprintln \"##Exit status: \${workflow.exitStatus}\"";
     $nextflow .= "\n}\n";
     // create directory and save file
-    $root_directory = "/tmp";
-    $dirname = "$root_directory/" . uniqid("nf_");
-    mkdir($dirname);
-    $filename = $dirname . "/" . uniqid("nf_") . ".nf";
-    file_put_contents($filename, $nextflow);
+    $src_abs_root = "/tmp";
+    $unique_nf = uniqid("nf_");
+    $src_abs_nf_dir = "$src_abs_root/$unique_nf";
+    mkdir($src_abs_nf_dir);
+    $src_abs_nf_file = "$src_abs_nf_dir/$unique_nf.nf";
+    syslog(LOG_WARNING, "filename: $src_abs_nf_file");
+    file_put_contents($src_abs_nf_file, $nextflow);
     // tar.gz'd that up: dbfuncs, tarGzDirectory
-    $targz_filename = $dirname.".tar.gz";
-    $db->tarGzDirectory($dirname, $targz_filename);
+    $targz_filename = $unique_nf . ".tar.gz";
+    $src_abs_tar_file = "$src_abs_root/$targz_filename";
+    $db->tarGzDirectory($src_abs_nf_dir, "$src_abs_root/$targz_filename");
     // send that file to the target via ssh
     $ssh_settings = $db->getSshSettings();
     $ssh_path = $db->getSshPath();
     $userpky = "{$ssh_path}/{$test_environment_owner_id}_{$test_environment_ssh_id}_ssh_pri.pky";
-    $rsync_cmd = "rsync -e 'ssh $ssh_settings -i $userpky' $targz_filename $test_environment_username@$test_environment_hostname:$dirname 2>&1";
+    $dst_abs_root = "/export";
+    $rsync_cmd = "rsync -e 'ssh $ssh_settings -i $userpky' $src_abs_tar_file $test_environment_username@$test_environment_hostname:$dst_abs_root 2>&1";
+    shell_exec($rsync_cmd);
     // extract and execute nextflow script
-    $exec_cmd = "ssh $test_environment_username@$test_environment_hostname $ssh_settings -i $userpky source /etc/profile && tar xf $targz_filename -C $root_directory && rm $targz_filename && cd $dirname && nextflow -q run $filename -process.echo";
+    $dst_abs_targz_file = "$dst_abs_root/$targz_filename";
+    $dst_abs_nf_dir = "$dst_abs_root/$unique_nf";
+    $exec_cmd = "ssh $test_environment_username@$test_environment_hostname $ssh_settings -i $userpky 'source /etc/profile && mkdir -p $dst_abs_nf_dir && tar xf $dst_abs_targz_file -C $dst_abs_nf_dir && rm $dst_abs_targz_file && cd $dst_abs_nf_dir && nextflow -q run $unique_nf.nf -process.echo'";
     $output = shell_exec($exec_cmd);
 
     // return response

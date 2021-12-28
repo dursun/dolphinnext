@@ -45,7 +45,9 @@
   -webkit-animation-name: slideIn;
   -webkit-animation-duration: 0.4s;
   animation-name: slideIn;
-  animation-duration: 0.4s
+  animation-duration: 0.4s;
+  max-height: 50%;
+  overflow-y: auto;
 }
 
 .modal-process-header {

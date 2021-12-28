@@ -2816,185 +2816,174 @@ $(document).ready(function () {
 
     // test script
     $('#addProcessModal').on('click', '.testscript', function (event) {
-        var clickedButID = $(this).attr("id")  //saveprocess, createRevision, createRevisionBut
         event.preventDefault()
-        var savetype = $('#mIdPro').val()
-        $('#permsPro').removeAttr('disabled')
-        var perms = $('#permsPro').val()
-        $('#permsPro').attr('disabled', "disabled")
-        var group = $('#groupSelPro').val()
-        if (!group) {
-            group = ""
+        // data to send
+        let data = {
+            p: "testScript",
+            inputs: [],
+            outputs: [],
+            code: {
+                nextflow_header: "",
+                script: "",
+                nextflow_footer: ""
+            },
+            test_environment: {
+                username: "",
+                hostname: "",
+                owner_id: "",
+                ssh_id: ""
+            }
         }
-        if (!savetype.length) {
-            // data to send
-            let data = {
-                p: "testScript",
-                inputs: [],
-                outputs: [],
-                code: {
-                    nextflow_header: "",
-                    script: "",
-                    nextflow_footer: ""
-                },
-                test_environment: {
-                    username: "",
-                    hostname: "",
-                    owner_id: "",
-                    ssh_id: ""
-                }
-            }
-            /*
-             * inputs
-             */
-            // get selected input count
-            const input_count = $("#mInputs .item").size()
-            // get selected input names
-            let input_names = new Array(input_count)
-            for (let i=1; i<=input_count; i++) {
-                input_names[i-1] = $("#mInName-"+i).val()
-            }
-            // get selected input qualifiers
-            const input_qualifiers = $("#mInputs .item").find('small').map(function(){
-                return $.trim($(this).text()).match(/val|file|set|each/g)
-            }).get()
-            // get selected input operator
-            let input_operators = new Array(input_count)
-            $("#mInOpt [style*='visible']").each(function(){
-                if (!this.options[this.selectedIndex].disabled) {
-                    let id = this.name.match(/\d+/)[0]
-                    input_operators[id-1] = this.options[this.selectedIndex].text
-                }
-            })
-            // get selected input operator content
-            let input_operators_content = new Array(input_count)
-            $("#mInClosure [style*='visible']").each(function(){
+        /**
+         * inputs
+         */
+        // get selected input count
+        const input_count = $("#mInputs .item").size()
+        // get selected input names
+        let input_names = new Array(input_count)
+        for (let i=1; i<=input_count; i++) {
+            input_names[i-1] = $("#mInName-"+i).val()
+        }
+        // get selected input qualifiers
+        const input_qualifiers = $("#mInputs .item").find('small').map(function(){
+            return $.trim($(this).text()).match(/val|file|set|each/g)
+        }).get()
+        // get selected input operator
+        let input_operators = new Array(input_count)
+        $("#mInOpt [style*='visible']").each(function(){
+            if (!this.options[this.selectedIndex].disabled) {
                 let id = this.name.match(/\d+/)[0]
-                input_operators_content[id-1] = this.value
-            })
-            // get selected input test value
-            let input_test_values = new Array(input_count)
-            for (let i=1; i<=input_count; i++) {
-                input_test_values[i-1] = $("#mInTestValue-"+i).val()
+                input_operators[id-1] = this.options[this.selectedIndex].text
             }
-            /*
-             * outputs
-             */
-            // get selected output count
-            const output_count = $("#mOutputs .item").size()
-            // get selected output names
-            let output_names = new Array(output_count)
-            for (let i=1; i<=output_count; i++) {
-                output_names[i-1] = $("#mOutName-"+i).val()
-            }
-            // get selected output qualifiers
-            const output_qualifiers = $("#mOutputs .item").find('small').map(function(){
-                return $.trim($(this).text()).match(/val|file|set|each/g)
-            }).get()
-            // get selected output operator
-            let output_operators = new Array(output_count)
-            $("#mOutOpt [style*='visible']").each(function(){
-                if (!this.options[this.selectedIndex].disabled) {
-                    let id = this.name.match(/\d+/)[0]
-                    output_operators[id-1] = this.options[this.selectedIndex].text
-                }
-            })
-            // get selected output operator content
-            let output_operators_content = new Array(output_count)
-            $("#mOutClosure [style*='visible']").each(function(){
+        })
+        // get selected input operator content
+        let input_operators_content = new Array(input_count)
+        $("#mInClosure [style*='visible']").each(function(){
+            let id = this.name.match(/\d+/)[0]
+            input_operators_content[id-1] = this.value
+        })
+        // get selected input test value
+        let input_test_values = new Array(input_count)
+        for (let i=1; i<=input_count; i++) {
+            input_test_values[i-1] = $("#mInTestValue-"+i).val()
+        }
+        /**
+         * outputs
+         */
+        // get selected output count
+        const output_count = $("#mOutputs .item").size()
+        // get selected output names
+        let output_names = new Array(output_count)
+        for (let i=1; i<=output_count; i++) {
+            output_names[i-1] = $("#mOutName-"+i).val()
+        }
+        // get selected output qualifiers
+        const output_qualifiers = $("#mOutputs .item").find('small').map(function(){
+            return $.trim($(this).text()).match(/val|file|set|each/g)
+        }).get()
+        // get selected output operator
+        let output_operators = new Array(output_count)
+        $("#mOutOpt [style*='visible']").each(function(){
+            if (!this.options[this.selectedIndex].disabled) {
                 let id = this.name.match(/\d+/)[0]
-                output_operators_content[id-1] = this.value
-            });
-            // get selected output test value
-            let output_test_values = new Array(output_count)
-            for (let i=1; i<=output_count; i++) {
-                output_test_values[i-1] = $("#mOutTestValue-"+i).val()
+                output_operators[id-1] = this.options[this.selectedIndex].text
             }
-            /*
-             * code
-             */
-            const nextflow_header = getScriptEditor('editorProHeader')
-            const script = getScriptEditor('editor')
-            const nextflow_footer = getScriptEditor('editorProFooter')
-            data.inputs = new Array(input_count)
-            for (let i=0; i<input_count; i++) {
-                data.inputs[i] = {}
-                data.inputs[i].name = input_names[i]
-                data.inputs[i].qualifier = input_qualifiers[i]
-                data.inputs[i].operator = input_operators[i]
-                data.inputs[i].operator_content = input_operators_content[i]
-                data.inputs[i].test_value = input_test_values[i]
-                console.log("input values :" + input_test_values[i])
+        })
+        // get selected output operator content
+        let output_operators_content = new Array(output_count)
+        $("#mOutClosure [style*='visible']").each(function(){
+            let id = this.name.match(/\d+/)[0]
+            output_operators_content[id-1] = this.value
+        });
+        // get selected output test value
+        let output_test_values = new Array(output_count)
+        for (let i=1; i<=output_count; i++) {
+            output_test_values[i-1] = $("#mOutTestValue-"+i).val()
+        }
+        /**
+         * code
+         */
+        const nextflow_header = getScriptEditor('editorProHeader')
+        const script = getScriptEditor('editor')
+        const nextflow_footer = getScriptEditor('editorProFooter')
+        data.inputs = new Array(input_count)
+        for (let i=0; i<input_count; i++) {
+            data.inputs[i] = {}
+            data.inputs[i].name = input_names[i]
+            data.inputs[i].qualifier = input_qualifiers[i]
+            data.inputs[i].operator = input_operators[i]
+            data.inputs[i].operator_content = input_operators_content[i]
+            data.inputs[i].test_value = input_test_values[i]
+            console.log("input values :" + input_test_values[i])
+        }
+        data.outputs = new Array(output_count)
+        for (let i=0; i<output_count; i++) {
+            data.outputs[i] = {}
+            data.outputs[i].name = output_names[i]
+            data.outputs[i].qualifier = output_qualifiers[i]
+            data.outputs[i].operator = output_operators[i]
+            data.outputs[i].operator_content = output_operators_content[i]
+            data.outputs[i].test_value = output_test_values[i]
+            console.log("output values :" + output_test_values[i])
+        }
+        data.code.nextflow_header = nextflow_header
+        data.code.script = script
+        data.code.nextflow_footer = nextflow_footer
+        // get test environment
+        const selected_env = $("#test_environment").find('option:selected').text()
+        const selected_ids = $("#test_environment").find('option:selected').val()
+        // e.g. Local (docker@localhost)
+        let matched = ""
+        if (selected_env)
+            matched = selected_env.match(/\(([^)]+)\)/)
+        if (matched) {
+            data.test_environment.username = matched[1].split('@')[0]
+            data.test_environment.hostname = matched[1].split('@')[1]
+        }
+        // e.g. cluster-1_1
+        const splitted = selected_ids.split('-')
+        if (splitted) {
+            const ids = splitted[1].split('_')
+            if (ids) {
+                data.test_environment.owner_id = ids[0]
+                data.test_environment.ssh_id = ids[1]
             }
-            data.outputs = new Array(output_count)
-            for (let i=0; i<output_count; i++) {
-                data.outputs[i] = {}
-                data.outputs[i].name = output_names[i]
-                data.outputs[i].qualifier = output_qualifiers[i]
-                data.outputs[i].operator = output_operators[i]
-                data.outputs[i].operator_content = output_operators_content[i]
-                data.outputs[i].test_value = output_test_values[i]
-                console.log("output values :" + output_test_values[i])
-            }
-            data.code.nextflow_header = nextflow_header
-            data.code.script = script
-            data.code.nextflow_footer = nextflow_footer
-            // get test environment
-            const selected_env = $("#test_environment").find('option:selected').text()
-            const selected_ids = $("#test_environment").find('option:selected').val()
-            // e.g. Local (docker@localhost)
-            let matched = ""
-            if (selected_env)
-                matched = selected_env.match(/\(([^)]+)\)/)
-            if (matched) {
-                data.test_environment.username = matched[1].split('@')[0]
-                data.test_environment.hostname = matched[1].split('@')[1]
-            }
-            // e.g. cluster-1_1
-            const splitted = selected_ids.split('-')
-            if (splitted) {
-                const ids = splitted[1].split('_')
-                if (ids) {
-                    data.test_environment.owner_id = ids[0]
-                    data.test_environment.ssh_id = ids[1]
-                }
-            }
-            const result = validate_data(data)
-            // reset modal box
-            $("#modal-process-body").empty()
-            $("#modal-process-footer").empty()
-            $('<h3>Please wait ...</h3>').appendTo('#modal-process-footer')
-            document.getElementsByClassName("close-modal")[0].onclick = null
-            if (result.isValid) {
-                $("#processModal").css("display", "block")
-                // convert to array to make it compatible
-                const dataToProcess = convertToFormData(data)
-                $.ajax({
-                    type: "POST",
-                    url: "ajax/ajaxquery.php",
-                    /*data: JSON.stringify(data),
-                    dataType: "text",
-                    contentType: "application/json",*/
-                    data: dataToProcess,
-                    async: true,
-                    success: function (response) {
-                        // replace new-line character (\n) with html break (<br/>)
-                        $('<p>'+decodeURIComponent(response).replace(/\n/g, "<br/>")+'</p>').appendTo('#modal-process-body')
-                        $("#modal-process-footer").empty()
-                        $('<h3>Process completed. You can close it with click on close button.</h3>').appendTo('#modal-process-footer')
-                        document.getElementsByClassName("close-modal")[0].onclick = function() {
-                            $("#processModal").css("display", "none")
-                        }
-                    },
-                    error: function (error) {
-                        console.log("Error: " + JSON.stringify(error))
-                        alert("Error: " + JSON.stringify(error))
+        }
+        const result = validate_data(data)
+        // reset modal box
+        $("#modal-process-body").empty()
+        $("#modal-process-footer").empty()
+        $('<h3>Please wait ...</h3>').appendTo('#modal-process-footer')
+        document.getElementsByClassName("close-modal")[0].onclick = null
+        if (result.isValid) {
+            $("#processModal").css("display", "block")
+            // convert to array to make it compatible
+            const dataToProcess = convertToFormData(data)
+            $.ajax({
+                type: "POST",
+                url: "ajax/ajaxquery.php",
+                /*data: JSON.stringify(data),
+                dataType: "text",
+                contentType: "application/json",*/
+                data: dataToProcess,
+                async: true,
+                success: function (response) {
+                    // replace new-line character (\n) with html break (<br/>)
+                    $('<p>'+decodeURIComponent(response).replace(/\n/g, "<br/>")+'</p>').appendTo('#modal-process-body')
+                    $("#modal-process-footer").empty()
+                    $('<h3>Process completed. You can close it with click on close button.</h3>').appendTo('#modal-process-footer')
+                    document.getElementsByClassName("close-modal")[0].onclick = function() {
                         $("#processModal").css("display", "none")
                     }
-                });
-            } else {
-                alert(result.message)
-            }
+                },
+                error: function (error) {
+                    console.log("Error: " + JSON.stringify(error))
+                    alert("Error: " + JSON.stringify(error))
+                    $("#processModal").css("display", "none")
+                }
+            });
+        } else {
+            alert(result.message)
         }
     })
 
